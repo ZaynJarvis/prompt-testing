@@ -124,18 +124,6 @@ const EditorLayout: React.FC = () => {
     }
   };
 
-  const handleReorderFiles = (sourceId: string, targetId: string) => {
-    const sourceIndex = files.findIndex(f => f.id === sourceId);
-    const targetIndex = files.findIndex(f => f.id === targetId);
-    
-    if (sourceIndex !== -1 && targetIndex !== -1) {
-      const newFiles = [...files];
-      const [movedFile] = newFiles.splice(sourceIndex, 1);
-      newFiles.splice(targetIndex, 0, movedFile);
-      setFiles(newFiles);
-    }
-  };
-
   const handleAddFile = () => {
     const initialContent = '# System Prompt\nYou are a helpful assistant.';
     const newFile: File = {
@@ -279,8 +267,7 @@ const EditorLayout: React.FC = () => {
     <div className="flex-1 flex flex-col h-full">
       <Tabs 
         files={files} 
-        onSelectFile={handleFileSelect}
-        onReorderFiles={handleReorderFiles}
+        onSelectFile={handleFileSelect} 
         onAddFile={handleAddFile} 
         onRemoveFile={handleRemoveFile}
         onRenameFile={handleRenameFile}
