@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { History } from 'lucide-react';
 import { PromptVersion } from '../types';
-import 'microlight';
 
 interface EditorProps {
   content: string;
@@ -13,17 +12,14 @@ interface EditorProps {
 const Editor: React.FC<EditorProps> = ({ content, versions, onChange, onRestoreVersion }) => {
   const [showVersions, setShowVersions] = useState(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
-  const previewRef = useRef<HTMLPreElement>(null);
   const versionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const updateHeight = () => {
-      if (editorRef.current && previewRef.current) {
+      if (editorRef.current) {
         const container = editorRef.current.parentElement;
         if (container) {
-          const height = `${container.clientHeight}px`;
-          editorRef.current.style.height = height;
-          previewRef.current.style.height = height;
+          editorRef.current.style.height = `${container.clientHeight}px`;
         }
       }
     };
@@ -51,21 +47,6 @@ const Editor: React.FC<EditorProps> = ({ content, versions, onChange, onRestoreV
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
-    if (previewRef.current) {
-      previewRef.current.textContent = e.target.value;
-      // @ts-ignore: microlight is added globally
-      window.microlight.reset(previewRef.current);
-    }
-  };
-
-  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement | HTMLPreElement>) => {
-    if (editorRef.current && previewRef.current) {
-      if (e.target === editorRef.current) {
-        previewRef.current.scrollTop = editorRef.current.scrollTop;
-      } else {
-        editorRef.current.scrollTop = previewRef.current.scrollTop;
-      }
-    }
   };
 
   const handleTab = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -100,14 +81,6 @@ const Editor: React.FC<EditorProps> = ({ content, versions, onChange, onRestoreV
     }
   };
 
-  useEffect(() => {
-    if (previewRef.current) {
-      previewRef.current.textContent = content;
-      // @ts-ignore: microlight is added globally
-      window.microlight.reset(previewRef.current);
-    }
-  }, [content]);
-
   return (
     <div className="h-full flex flex-col bg-[#1e1e1e]">
       <div className="p-2 text-sm text-gray-400 border-b border-[#252525] flex justify-between items-center">
@@ -132,15 +105,9 @@ const Editor: React.FC<EditorProps> = ({ content, versions, onChange, onRestoreV
           value={content}
           onChange={handleChange}
           onKeyDown={handleTab}
-          onScroll={handleScroll}
-          className="w-full h-full bg-transparent resize-none outline-none font-mono text-sm leading-relaxed p-4 overflow-auto absolute inset-0 text-transparent caret-white"
+          className="w-full h-full bg-transparent resize-none outline-none font-mono text-sm leading-relaxed p-4 overflow-auto"
           spellCheck="false"
         />
-        <pre
-          ref={previewRef}
-          onScroll={handleScroll}
-          className="w-full h-full font-mono text-sm leading-relaxed p-4 overflow-auto absolute inset-0 pointer-events-none"
-        >{content}</pre>
         {showVersions && versions.length > 0 && (
           <div 
             ref={versionsRef}

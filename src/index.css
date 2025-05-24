@@ -50,36 +50,3 @@ body, html {
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out forwards;
 }
-
-/* Microlight theme customization */
-.microlight {
-  color: #d4d4d4;
-  background: none;
-}
-
-.microlight .keyword,
-.microlight .important {
-  color: #569cd6;
-}
-
-.microlight .string,
-.microlight .regexp {
-  color: #ce9178;
-}
-
-.microlight .number {
-  color: #b5cea8;
-}
-
-.microlight .comment {
-  color: #6a9955;
-}
-
-.microlight .tag,
-.microlight .symbol {
-  color: #4ec9b0;
-}
-
-.microlight .operator {
-  color: #d4d4d4;
-}
