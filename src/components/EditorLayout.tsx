@@ -287,7 +287,7 @@ const EditorLayout: React.FC = () => {
           }`}
           onMouseDown={handleMouseDown}
         />
-        <div className="flex-1">
+        <div className="flex-1 flex flex-col h-full">
           <ResponsePanel 
             messages={chatHistory} 
             isLoading={isLoading} 
