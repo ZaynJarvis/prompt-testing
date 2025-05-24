@@ -18,6 +18,7 @@ const ResponsePanel: React.FC<ResponsePanelProps> = ({
   onSubmit
 }) => {
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messages.forEach((_, index) => {
@@ -28,6 +29,11 @@ const ResponsePanel: React.FC<ResponsePanelProps> = ({
         textarea.style.height = `${minHeight}px`;
       }
     });
+
+    // Scroll to the bottom when new messages are added
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>, index: number) => {
@@ -52,48 +58,49 @@ const ResponsePanel: React.FC<ResponsePanelProps> = ({
         <span>Chat History</span>
         {error && <span className="text-red-400 text-xs">{error}</span>}
       </div>
-      <div className="flex-1 overflow-auto p-2">
-        <div className="space-y-2">
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`group flex items-start gap-2 p-2 rounded ${
-                message.role === 'user' ? 'bg-[#2d2d2d]' : 'bg-[#1e1e1e] border border-[#3c3c3c]'
-              }`}
-            >
-              <div className="shrink-0 w-16 text-xs text-gray-400 pt-1">
-                {message.role === 'user' ? 'You' : 'Assistant'}
-              </div>
-              <div className="flex-1 relative">
-                <textarea
-                  ref={el => textareaRefs.current[index] = el}
-                  value={message.content}
-                  onChange={(e) => handleInput(e, index)}
-                  onKeyDown={(e) => handleKeyDown(e, index)}
-                  placeholder={message.role === 'user' ? "Type your message... (Press Enter to send, Shift+Enter for new line)" : "Assistant's response"}
-                  className="w-full bg-transparent border-none outline-none resize-none font-mono text-sm leading-6 min-h-[24px]"
-                  disabled={message.role === 'assistant' || isLoading}
-                  rows={1}
-                />
-                {message.role === 'user' && message.content.trim() && (
-                  <button
-                    onClick={() => onSubmit(index)}
-                    disabled={isLoading}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-[#3c3c3c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors opacity-50 group-hover:opacity-100"
-                  >
-                    <Send size={12} />
-                  </button>
-                )}
-              </div>
+      <div 
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-2"
+      >
+        {messages.map((message, index) => (
+          <div
+            key={index}
+            className={`group flex items-start gap-2 p-2 rounded ${
+              message.role === 'user' ? 'bg-[#2d2d2d]' : 'bg-[#1e1e1e] border border-[#3c3c3c]'
+            }`}
+          >
+            <div className="shrink-0 w-16 text-xs text-gray-400 pt-1">
+              {message.role === 'user' ? 'You' : 'Assistant'}
             </div>
-          ))}
-          {isLoading && (
-            <div className="flex items-center justify-center p-2">
-              <Loader2 className="animate-spin mr-2" size={14} />
-              <span className="text-sm">Generating response...</span>
+            <div className="flex-1 relative">
+              <textarea
+                ref={el => textareaRefs.current[index] = el}
+                value={message.content}
+                onChange={(e) => handleInput(e, index)}
+                onKeyDown={(e) => handleKeyDown(e, index)}
+                placeholder={message.role === 'user' ? "Type your message... (Press Enter to send, Shift+Enter for new line)" : "Assistant's response"}
+                className="w-full bg-transparent border-none outline-none resize-none font-mono text-sm leading-6 min-h-[24px] max-h-[300px] overflow-y-auto"
+                disabled={message.role === 'assistant' || isLoading}
+                rows={1}
+              />
+              {message.role === 'user' && message.content.trim() && (
+                <button
+                  onClick={() => onSubmit(index)}
+                  disabled={isLoading}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-[#3c3c3c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors opacity-50 group-hover:opacity-100"
+                >
+                  <Send size={12} />
+                </button>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        ))}
+        {isLoading && (
+          <div className="flex items-center justify-center p-2">
+            <Loader2 className="animate-spin mr-2" size={14} />
+            <span className="text-sm">Generating response...</span>
+          </div>
+        )}
       </div>
     </div>
   );
