@@ -26,7 +26,7 @@ const Editor: React.FC<EditorProps> = ({ content, versions, onChange, onRestoreV
 
       const highlighted = highlighter.codeToHtml(content, {
         lang: 'markdown',
-        theme: 'github-dark'
+        theme: 'vitesse-dark'
       });
 
       setHighlightedContent(highlighted);
