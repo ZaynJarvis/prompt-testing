@@ -71,6 +71,7 @@ const EditorLayout: React.FC = () => {
     const activeFile = files.find(file => file.active);
     if (activeFile) {
       localStorage.setItem('activeFileId', activeFile.id);
+      setActiveFile(activeFile);
     }
   }, [files]);
 
@@ -190,6 +191,10 @@ const EditorLayout: React.FC = () => {
     }
   };
 
+  const handleReorderFiles = (newFiles: File[]) => {
+    setFiles(newFiles);
+  };
+
   const handleContentChange = (fileId: string, newContent: string) => {
     const newFiles = files.map(file => {
       if (file.id === fileId) {
@@ -285,6 +290,7 @@ const EditorLayout: React.FC = () => {
         onAddFile={handleAddFile} 
         onRemoveFile={handleRemoveFile}
         onRenameFile={handleRenameFile}
+        onReorderFiles={handleReorderFiles}
       />
       <div className="flex-1 flex relative overflow-hidden" ref={containerRef}>
         <div style={{ width: editorWidth, minWidth: MIN_PANEL_WIDTH }} className="border-r border-[#252525]">

@@ -8,6 +8,7 @@ interface TabsProps {
   onAddFile: () => void;
   onRemoveFile: (fileId: string) => void;
   onRenameFile: (fileId: string, newName: string) => void;
+  onReorderFiles: (files: File[]) => void;
 }
 
 const Tabs: React.FC<TabsProps> = ({ 
@@ -15,7 +16,8 @@ const Tabs: React.FC<TabsProps> = ({
   onSelectFile, 
   onAddFile, 
   onRemoveFile,
-  onRenameFile
+  onRenameFile,
+  onReorderFiles
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>('');
@@ -45,7 +47,6 @@ const Tabs: React.FC<TabsProps> = ({
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, fileId: string) => {
     setDraggedId(fileId);
     e.dataTransfer.effectAllowed = 'move';
-    // Add a semi-transparent effect to the dragged tab
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '0.5';
     }
@@ -78,17 +79,7 @@ const Tabs: React.FC<TabsProps> = ({
     const [draggedFile] = newFiles.splice(draggedIndex, 1);
     newFiles.splice(targetIndex, 0, draggedFile);
 
-    // Update localStorage with the new order
-    localStorage.setItem('tabOrder', JSON.stringify(newFiles.map(f => f.id)));
-    
-    // Update the files state through the parent component
-    const updatedFiles = newFiles.map(file => ({
-      ...file,
-      active: file.id === (draggedFile.active ? draggedFile.id : files.find(f => f.active)?.id)
-    }));
-    
-    localStorage.setItem('promptFiles', JSON.stringify(updatedFiles));
-    window.dispatchEvent(new Event('storage'));
+    onReorderFiles(newFiles);
   };
 
   return (
