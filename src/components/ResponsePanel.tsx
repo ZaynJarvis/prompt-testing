@@ -63,7 +63,7 @@ const ResponsePanel: React.FC<ResponsePanelProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden h-screen">
       <div className="p-2 text-sm text-gray-400 border-b border-[#252525] flex justify-between items-center">
         <div className="flex items-center gap-2">
           <span>Chat History</span>
