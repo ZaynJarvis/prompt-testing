@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Plus, X, Check, X as Cancel } from 'lucide-react';
 import { File } from '../types';
 
@@ -19,6 +19,9 @@ const Tabs: React.FC<TabsProps> = ({
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>('');
+  const [draggedFile, setDraggedFile] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const dragTimeoutRef = useRef<number>();
 
   const handleDoubleClick = (file: File) => {
     setEditingId(file.id);
@@ -40,12 +43,77 @@ const Tabs: React.FC<TabsProps> = ({
     }
   };
 
+  const handleDragStart = (e: React.DragEvent, fileId: string) => {
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedFile(fileId);
+    // Add a slight delay before adding the dragging class for better UX
+    dragTimeoutRef.current = window.setTimeout(() => {
+      const element = document.getElementById(`tab-${fileId}`);
+      if (element) element.classList.add('opacity-50');
+    }, 50);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedFile(null);
+    setDropTarget(null);
+    if (dragTimeoutRef.current) {
+      clearTimeout(dragTimeoutRef.current);
+    }
+    // Remove dragging class from all tabs
+    document.querySelectorAll('[id^="tab-"]').forEach(el => {
+      el.classList.remove('opacity-50');
+    });
+  };
+
+  const handleDragOver = (e: React.DragEvent, fileId: string) => {
+    e.preventDefault();
+    if (draggedFile && draggedFile !== fileId) {
+      setDropTarget(fileId);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedFile || draggedFile === targetId) return;
+
+    const sourceIndex = files.findIndex(f => f.id === draggedFile);
+    const targetIndex = files.findIndex(f => f.id === targetId);
+    
+    if (sourceIndex !== -1 && targetIndex !== -1) {
+      const newFiles = [...files];
+      const [movedFile] = newFiles.splice(sourceIndex, 1);
+      newFiles.splice(targetIndex, 0, movedFile);
+      
+      // Update localStorage with new order
+      localStorage.setItem('promptFiles', JSON.stringify(newFiles));
+      
+      // Force a re-render by updating the parent component
+      const updatedFiles = newFiles.map(file => ({
+        ...file,
+        active: file.id === (files.find(f => f.active)?.id)
+      }));
+      
+      // Update the files state in the parent component
+      onSelectFile(updatedFiles.find(f => f.active)?.id || updatedFiles[0].id);
+    }
+    
+    handleDragEnd();
+  };
+
   return (
     <div className="h-9 bg-[#252526] flex items-center border-b border-[#252525] overflow-x-auto">
       {files.map(file => (
         <div 
-          key={file.id} 
-          className={`flex items-center h-full px-3 cursor-pointer border-r border-[#252525] ${file.active ? 'bg-[#1e1e1e]' : 'hover:bg-[#2d2d2d]'}`}
+          key={file.id}
+          id={`tab-${file.id}`}
+          draggable={!editingId}
+          onDragStart={(e) => handleDragStart(e, file.id)}
+          onDragEnd={handleDragEnd}
+          onDragOver={(e) => handleDragOver(e, file.id)}
+          onDrop={(e) => handleDrop(e, file.id)}
+          className={`flex items-center h-full px-3 cursor-pointer border-r border-[#252525] transition-colors ${
+            file.active ? 'bg-[#1e1e1e]' : 'hover:bg-[#2d2d2d]'
+          } ${dropTarget === file.id ? 'border-t-2 border-t-[#007acc]' : ''}`}
           onClick={() => onSelectFile(file.id)}
           onDoubleClick={() => handleDoubleClick(file)}
         >
