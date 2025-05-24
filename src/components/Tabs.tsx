@@ -5,6 +5,7 @@ import { File } from '../types';
 interface TabsProps {
   files: File[];
   onSelectFile: (fileId: string) => void;
+  onReorderFiles: (sourceId: string, targetId: string) => void;
   onAddFile: () => void;
   onRemoveFile: (fileId: string) => void;
   onRenameFile: (fileId: string, newName: string) => void;
@@ -13,6 +14,7 @@ interface TabsProps {
 const Tabs: React.FC<TabsProps> = ({ 
   files, 
   onSelectFile, 
+  onReorderFiles,
   onAddFile, 
   onRemoveFile,
   onRenameFile
@@ -44,8 +46,10 @@ const Tabs: React.FC<TabsProps> = ({
   };
 
   const handleDragStart = (e: React.DragEvent, fileId: string) => {
+    if (editingId) return;
     e.dataTransfer.effectAllowed = 'move';
     setDraggedFile(fileId);
+    
     // Add a slight delay before adding the dragging class for better UX
     dragTimeoutRef.current = window.setTimeout(() => {
       const element = document.getElementById(`tab-${fileId}`);
@@ -75,28 +79,7 @@ const Tabs: React.FC<TabsProps> = ({
   const handleDrop = (e: React.DragEvent, targetId: string) => {
     e.preventDefault();
     if (!draggedFile || draggedFile === targetId) return;
-
-    const sourceIndex = files.findIndex(f => f.id === draggedFile);
-    const targetIndex = files.findIndex(f => f.id === targetId);
-    
-    if (sourceIndex !== -1 && targetIndex !== -1) {
-      const newFiles = [...files];
-      const [movedFile] = newFiles.splice(sourceIndex, 1);
-      newFiles.splice(targetIndex, 0, movedFile);
-      
-      // Update localStorage with new order
-      localStorage.setItem('promptFiles', JSON.stringify(newFiles));
-      
-      // Force a re-render by updating the parent component
-      const updatedFiles = newFiles.map(file => ({
-        ...file,
-        active: file.id === (files.find(f => f.active)?.id)
-      }));
-      
-      // Update the files state in the parent component
-      onSelectFile(updatedFiles.find(f => f.active)?.id || updatedFiles[0].id);
-    }
-    
+    onReorderFiles(draggedFile, targetId);
     handleDragEnd();
   };
 
