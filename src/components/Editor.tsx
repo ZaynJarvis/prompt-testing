@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { History } from 'lucide-react';
 import { PromptVersion } from '../types';
+import { getHighlighter } from 'shiki';
 
 interface EditorProps {
   content: string;
@@ -11,8 +12,27 @@ interface EditorProps {
 
 const Editor: React.FC<EditorProps> = ({ content, versions, onChange, onRestoreVersion }) => {
   const [showVersions, setShowVersions] = useState(false);
+  const [highlightedContent, setHighlightedContent] = useState('');
   const editorRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const versionsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const initHighlighter = async () => {
+      const highlighter = await getHighlighter({
+        theme: 'github-dark',
+        langs: ['markdown']
+      });
+
+      const highlighted = highlighter.codeToHtml(content, {
+        lang: 'markdown',
+      });
+
+      setHighlightedContent(highlighted);
+    };
+
+    initHighlighter();
+  }, [content]);
 
   useEffect(() => {
     const updateHeight = () => {
@@ -20,6 +40,9 @@ const Editor: React.FC<EditorProps> = ({ content, versions, onChange, onRestoreV
         const container = editorRef.current.parentElement;
         if (container) {
           editorRef.current.style.height = `${container.clientHeight}px`;
+          if (previewRef.current) {
+            previewRef.current.style.height = `${container.clientHeight}px`;
+          }
         }
       }
     };
@@ -47,6 +70,12 @@ const Editor: React.FC<EditorProps> = ({ content, versions, onChange, onRestoreV
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    if (previewRef.current) {
+      previewRef.current.scrollTop = e.currentTarget.scrollTop;
+    }
   };
 
   const handleTab = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -105,8 +134,14 @@ const Editor: React.FC<EditorProps> = ({ content, versions, onChange, onRestoreV
           value={content}
           onChange={handleChange}
           onKeyDown={handleTab}
-          className="w-full h-full bg-transparent resize-none outline-none font-mono text-sm leading-relaxed p-4 overflow-auto"
+          onScroll={handleScroll}
+          className="w-full h-full bg-transparent resize-none outline-none font-mono text-sm leading-relaxed p-4 overflow-auto absolute inset-0 text-transparent caret-white"
           spellCheck="false"
+        />
+        <div 
+          ref={previewRef}
+          className="w-full h-full overflow-auto absolute inset-0 pointer-events-none p-4"
+          dangerouslySetInnerHTML={{ __html: highlightedContent }}
         />
         {showVersions && versions.length > 0 && (
           <div 
