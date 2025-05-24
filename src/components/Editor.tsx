@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { History } from 'lucide-react';
 import { PromptVersion } from '../types';
-import { getHighlighter } from 'shiki';
+import { getHighlighter, bundledThemes } from 'shiki';
 
 interface EditorProps {
   content: string;
@@ -20,13 +20,13 @@ const Editor: React.FC<EditorProps> = ({ content, versions, onChange, onRestoreV
   useEffect(() => {
     const initHighlighter = async () => {
       const highlighter = await getHighlighter({
-        theme: 'github-dark',
+        themes: Object.keys(bundledThemes),
         langs: ['markdown']
       });
 
       const highlighted = highlighter.codeToHtml(content, {
         lang: 'markdown',
-        theme: 'github-dark' // Added the missing theme option here
+        theme: 'github-dark'
       });
 
       setHighlightedContent(highlighted);
