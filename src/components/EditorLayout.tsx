@@ -13,7 +13,7 @@ const EditorLayout: React.FC = () => {
   const [files, setFiles] = useState<File[]>(() => {
     const stored = localStorage.getItem('promptFiles');
     if (!stored) {
-      const initialFile = {
+      return [{
         id: generateUniqueId(),
         name: 'prompt1.txt',
         content: '# System Prompt\nYou are a helpful assistant.',
@@ -23,26 +23,13 @@ const EditorLayout: React.FC = () => {
           content: '# System Prompt\nYou are a helpful assistant.',
           timestamp: Date.now()
         }]
-      };
-      return [initialFile];
+      }];
     }
     
     const parsedFiles = JSON.parse(stored);
-    const storedOrder = localStorage.getItem('tabOrder');
-    const orderArray = storedOrder ? JSON.parse(storedOrder) : null;
-    
-    if (orderArray) {
-      // Reorder files according to stored order
-      const orderedFiles = orderArray
-        .map(id => parsedFiles.find(f => f.id === id))
-        .filter(Boolean);
-      // Add any new files that might not be in the order
-      const remainingFiles = parsedFiles.filter(f => !orderArray.includes(f.id));
-      return [...orderedFiles, ...remainingFiles];
-    }
-    
     const activeFileId = localStorage.getItem('activeFileId');
-    return parsedFiles.map(file => ({
+    
+    return parsedFiles.map((file: File) => ({
       ...file,
       active: file.id === activeFileId
     }));
@@ -67,11 +54,9 @@ const EditorLayout: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('promptFiles', JSON.stringify(files));
-    localStorage.setItem('tabOrder', JSON.stringify(files.map(f => f.id)));
     const activeFile = files.find(file => file.active);
     if (activeFile) {
       localStorage.setItem('activeFileId', activeFile.id);
-      setActiveFile(activeFile);
     }
   }, [files]);
 
@@ -191,10 +176,6 @@ const EditorLayout: React.FC = () => {
     }
   };
 
-  const handleReorderFiles = (newFiles: File[]) => {
-    setFiles(newFiles);
-  };
-
   const handleContentChange = (fileId: string, newContent: string) => {
     const newFiles = files.map(file => {
       if (file.id === fileId) {
@@ -290,7 +271,6 @@ const EditorLayout: React.FC = () => {
         onAddFile={handleAddFile} 
         onRemoveFile={handleRemoveFile}
         onRenameFile={handleRenameFile}
-        onReorderFiles={handleReorderFiles}
       />
       <div className="flex-1 flex relative overflow-hidden" ref={containerRef}>
         <div style={{ width: editorWidth, minWidth: MIN_PANEL_WIDTH }} className="border-r border-[#252525]">
