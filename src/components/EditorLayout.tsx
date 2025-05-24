@@ -40,7 +40,11 @@ const EditorLayout: React.FC = () => {
     return files.find(file => file.id === activeFileId) || files[0];
   });
 
-  const [chatHistory, setChatHistory] = useState<Message[]>([{ role: 'user', content: '' }]);
+  const [chatHistory, setChatHistory] = useState<Message[]>(() => {
+    const stored = localStorage.getItem('chatHistory');
+    return stored ? JSON.parse(stored) : [{ role: 'user', content: '' }];
+  });
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [editorWidth, setEditorWidth] = useState<number>(400);
@@ -55,6 +59,10 @@ const EditorLayout: React.FC = () => {
       localStorage.setItem('activeFileId', activeFile.id);
     }
   }, [files]);
+
+  useEffect(() => {
+    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+  }, [chatHistory]);
 
   useEffect(() => {
     const storedWidth = localStorage.getItem('editorWidth');
@@ -250,6 +258,11 @@ const EditorLayout: React.FC = () => {
     setActiveFile({ ...activeFile, content: version.content });
   };
 
+  const handleClearChat = () => {
+    setChatHistory([{ role: 'user', content: '' }]);
+    setError(null);
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full">
       <Tabs 
@@ -281,6 +294,7 @@ const EditorLayout: React.FC = () => {
             error={error}
             onMessageEdit={handleMessageEdit}
             onSubmit={handleSubmit}
+            onClear={handleClearChat}
           />
         </div>
       </div>
