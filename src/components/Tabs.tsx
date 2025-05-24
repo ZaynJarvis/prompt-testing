@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Plus, X, Check, X as Cancel } from 'lucide-react';
 import { File } from '../types';
 
@@ -19,6 +19,8 @@ const Tabs: React.FC<TabsProps> = ({
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>('');
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const dragOverTabId = useRef<string | null>(null);
 
   const handleDoubleClick = (file: File) => {
     setEditingId(file.id);
@@ -40,14 +42,70 @@ const Tabs: React.FC<TabsProps> = ({
     }
   };
 
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, fileId: string) => {
+    setDraggedId(fileId);
+    e.dataTransfer.effectAllowed = 'move';
+    // Add a semi-transparent effect to the dragged tab
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.5';
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+    setDraggedId(null);
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '1';
+    }
+    dragOverTabId.current = null;
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, fileId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    dragOverTabId.current = fileId;
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
+    e.preventDefault();
+    if (!draggedId || draggedId === targetId) return;
+
+    const draggedIndex = files.findIndex(f => f.id === draggedId);
+    const targetIndex = files.findIndex(f => f.id === targetId);
+    
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const newFiles = [...files];
+    const [draggedFile] = newFiles.splice(draggedIndex, 1);
+    newFiles.splice(targetIndex, 0, draggedFile);
+
+    // Update localStorage with the new order
+    localStorage.setItem('tabOrder', JSON.stringify(newFiles.map(f => f.id)));
+    
+    // Update the files state through the parent component
+    const updatedFiles = newFiles.map(file => ({
+      ...file,
+      active: file.id === (draggedFile.active ? draggedFile.id : files.find(f => f.active)?.id)
+    }));
+    
+    localStorage.setItem('promptFiles', JSON.stringify(updatedFiles));
+    window.dispatchEvent(new Event('storage'));
+  };
+
   return (
     <div className="h-9 bg-[#252526] flex items-center border-b border-[#252525] overflow-x-auto">
       {files.map(file => (
         <div 
           key={file.id} 
-          className={`flex items-center h-full px-3 cursor-pointer border-r border-[#252525] ${file.active ? 'bg-[#1e1e1e]' : 'hover:bg-[#2d2d2d]'}`}
+          className={`flex items-center h-full px-3 cursor-pointer border-r border-[#252525] ${
+            file.active ? 'bg-[#1e1e1e]' : 'hover:bg-[#2d2d2d]'
+          } ${draggedId === file.id ? 'opacity-50' : ''}`}
           onClick={() => onSelectFile(file.id)}
           onDoubleClick={() => handleDoubleClick(file)}
+          draggable={!editingId}
+          onDragStart={(e) => handleDragStart(e, file.id)}
+          onDragEnd={handleDragEnd}
+          onDragOver={(e) => handleDragOver(e, file.id)}
+          onDrop={(e) => handleDrop(e, file.id)}
         >
           {editingId === file.id ? (
             <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>

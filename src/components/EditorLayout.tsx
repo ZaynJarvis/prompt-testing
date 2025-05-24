@@ -13,7 +13,7 @@ const EditorLayout: React.FC = () => {
   const [files, setFiles] = useState<File[]>(() => {
     const stored = localStorage.getItem('promptFiles');
     if (!stored) {
-      return [{
+      const initialFile = {
         id: generateUniqueId(),
         name: 'prompt1.txt',
         content: '# System Prompt\nYou are a helpful assistant.',
@@ -23,13 +23,26 @@ const EditorLayout: React.FC = () => {
           content: '# System Prompt\nYou are a helpful assistant.',
           timestamp: Date.now()
         }]
-      }];
+      };
+      return [initialFile];
     }
     
     const parsedFiles = JSON.parse(stored);
-    const activeFileId = localStorage.getItem('activeFileId');
+    const storedOrder = localStorage.getItem('tabOrder');
+    const orderArray = storedOrder ? JSON.parse(storedOrder) : null;
     
-    return parsedFiles.map((file: File) => ({
+    if (orderArray) {
+      // Reorder files according to stored order
+      const orderedFiles = orderArray
+        .map(id => parsedFiles.find(f => f.id === id))
+        .filter(Boolean);
+      // Add any new files that might not be in the order
+      const remainingFiles = parsedFiles.filter(f => !orderArray.includes(f.id));
+      return [...orderedFiles, ...remainingFiles];
+    }
+    
+    const activeFileId = localStorage.getItem('activeFileId');
+    return parsedFiles.map(file => ({
       ...file,
       active: file.id === activeFileId
     }));
@@ -54,6 +67,7 @@ const EditorLayout: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('promptFiles', JSON.stringify(files));
+    localStorage.setItem('tabOrder', JSON.stringify(files.map(f => f.id)));
     const activeFile = files.find(file => file.active);
     if (activeFile) {
       localStorage.setItem('activeFileId', activeFile.id);
