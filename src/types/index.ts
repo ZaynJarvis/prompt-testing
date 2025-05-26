@@ -4,6 +4,7 @@ export interface File {
   content: string;
   active: boolean;
   versions?: PromptVersion[];
+  chatHistory: Message[];
 }
 
 export interface PromptVersion {

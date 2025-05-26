@@ -22,7 +22,8 @@ const EditorLayout: React.FC = () => {
           id: generateUniqueId(),
           content: '# System Prompt\nYou are a helpful assistant.',
           timestamp: Date.now()
-        }]
+        }],
+        chatHistory: [{ role: 'user', content: '' }]
       }];
     }
     
@@ -31,18 +32,14 @@ const EditorLayout: React.FC = () => {
     
     return parsedFiles.map((file: File) => ({
       ...file,
-      active: file.id === activeFileId
+      active: file.id === activeFileId,
+      chatHistory: file.chatHistory || [{ role: 'user', content: '' }]
     }));
   });
 
   const [activeFile, setActiveFile] = useState<File>(() => {
     const activeFileId = localStorage.getItem('activeFileId');
     return files.find(file => file.id === activeFileId) || files[0];
-  });
-
-  const [chatHistory, setChatHistory] = useState<Message[]>(() => {
-    const stored = localStorage.getItem('chatHistory');
-    return stored ? JSON.parse(stored) : [{ role: 'user', content: '' }];
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -59,10 +56,6 @@ const EditorLayout: React.FC = () => {
       localStorage.setItem('activeFileId', activeFile.id);
     }
   }, [files]);
-
-  useEffect(() => {
-    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
-  }, [chatHistory]);
 
   useEffect(() => {
     const storedWidth = localStorage.getItem('editorWidth');
@@ -119,7 +112,6 @@ const EditorLayout: React.FC = () => {
     const selectedFile = files.find(file => file.id === fileId);
     if (selectedFile) {
       setActiveFile(selectedFile);
-      setChatHistory([{ role: 'user', content: '' }]);
       setError(null);
     }
   };
@@ -135,7 +127,8 @@ const EditorLayout: React.FC = () => {
         id: generateUniqueId(),
         content: initialContent,
         timestamp: Date.now()
-      }]
+      }],
+      chatHistory: [{ role: 'user', content: '' }]
     };
     
     const newFiles = files.map(file => ({
@@ -145,7 +138,6 @@ const EditorLayout: React.FC = () => {
     
     setFiles([...newFiles, newFile]);
     setActiveFile(newFile);
-    setChatHistory([{ role: 'user', content: '' }]);
     setError(null);
   };
 
@@ -159,7 +151,6 @@ const EditorLayout: React.FC = () => {
       const newActiveIndex = fileIndex === 0 ? 0 : fileIndex - 1;
       newFiles[newActiveIndex].active = true;
       setActiveFile(newFiles[newActiveIndex]);
-      setChatHistory([{ role: 'user', content: '' }]);
       setError(null);
     }
     
@@ -190,9 +181,18 @@ const EditorLayout: React.FC = () => {
   };
 
   const handleMessageEdit = (index: number, newContent: string) => {
-    const newHistory = [...chatHistory];
+    const newHistory = [...activeFile.chatHistory];
     newHistory[index] = { ...newHistory[index], content: newContent };
-    setChatHistory(newHistory);
+    
+    const newFiles = files.map(file => {
+      if (file.id === activeFile.id) {
+        return { ...file, chatHistory: newHistory };
+      }
+      return file;
+    });
+    
+    setFiles(newFiles);
+    setActiveFile({ ...activeFile, chatHistory: newHistory });
   };
 
   const createNewVersion = async (file: File): Promise<PromptVersion[]> => {
@@ -216,32 +216,55 @@ const EditorLayout: React.FC = () => {
   };
 
   const handleSubmit = async (messageIndex: number) => {
-    const userMessage = chatHistory[messageIndex];
+    const userMessage = activeFile.chatHistory[messageIndex];
     if (!userMessage.content.trim() || userMessage.role !== 'user') return;
 
     setIsLoading(true);
     setError(null);
 
-    const relevantHistory = chatHistory.slice(0, messageIndex);
+    const relevantHistory = activeFile.chatHistory.slice(0, messageIndex);
     const updatedHistory = [...relevantHistory, userMessage];
 
     try {
       const versions = await createNewVersion(activeFile);
-      const newFiles = files.map(file => 
-        file.id === activeFile.id ? { ...file, versions } : file
-      );
+      const newFiles = files.map(file => {
+        if (file.id === activeFile.id) {
+          return { ...file, versions };
+        }
+        return file;
+      });
       setFiles(newFiles);
       setActiveFile({ ...activeFile, versions });
 
       const response = await callApi(activeFile.content, userMessage.content, relevantHistory);
       const newAssistantMessage: Message = { role: 'assistant', content: response };
       const newUserMessage: Message = { role: 'user', content: '' };
-      setChatHistory([...updatedHistory, newAssistantMessage, newUserMessage]);
+      const newHistory = [...updatedHistory, newAssistantMessage, newUserMessage];
+      
+      const filesWithNewHistory = newFiles.map(file => {
+        if (file.id === activeFile.id) {
+          return { ...file, chatHistory: newHistory };
+        }
+        return file;
+      });
+      
+      setFiles(filesWithNewHistory);
+      setActiveFile({ ...activeFile, chatHistory: newHistory });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       setError(errorMessage);
       console.error('Failed to get response:', error);
-      setChatHistory([...updatedHistory, { role: 'user', content: '' }]);
+      
+      const newHistory = [...updatedHistory, { role: 'user', content: '' }];
+      const filesWithNewHistory = files.map(file => {
+        if (file.id === activeFile.id) {
+          return { ...file, chatHistory: newHistory };
+        }
+        return file;
+      });
+      
+      setFiles(filesWithNewHistory);
+      setActiveFile({ ...activeFile, chatHistory: newHistory });
     } finally {
       setIsLoading(false);
     }
@@ -259,7 +282,15 @@ const EditorLayout: React.FC = () => {
   };
 
   const handleClearChat = () => {
-    setChatHistory([{ role: 'user', content: '' }]);
+    const newHistory = [{ role: 'user', content: '' }];
+    const newFiles = files.map(file => {
+      if (file.id === activeFile.id) {
+        return { ...file, chatHistory: newHistory };
+      }
+      return file;
+    });
+    setFiles(newFiles);
+    setActiveFile({ ...activeFile, chatHistory: newHistory });
     setError(null);
   };
 
@@ -289,7 +320,7 @@ const EditorLayout: React.FC = () => {
         />
         <div className="flex-1 flex flex-col h-full">
           <ResponsePanel 
-            messages={chatHistory} 
+            messages={activeFile.chatHistory} 
             isLoading={isLoading} 
             error={error}
             onMessageEdit={handleMessageEdit}
